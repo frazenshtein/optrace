@@ -43,16 +43,16 @@ namespace NOPTrace {
     std::string ReadFileSafe(const std::string& filename, long limit) noexcept {
         std::ifstream file(filename);
         if (file.is_open()) {
+            std::string res;
             if (limit < 0) {
                 std::stringstream buffer;
                 buffer << file.rdbuf();
-                return buffer.str();
+                res = buffer.str();
             } else if (limit > 0) {
-                std::string res;
                 res.resize(limit);
                 file.read(&res[0], limit);
-                return res;
             }
+            StripString(res);
         }
         return "";
     }
@@ -101,6 +101,12 @@ namespace NOPTrace {
             std::cerr << "Failed to readlink (" << filename.c_str() << "): " << strerror(errno) << std::endl;
             exit(2);
         }
+    }
+
+    void StripString(std::string &str) noexcept {
+        static const char* ws = " \t\n\r";
+        str.erase(str.find_last_not_of(ws) + 1);
+        str.erase(0, str.find_first_not_of(ws));
     }
 
     std::string GetCommandLine(pid_t pid, long limit) noexcept {

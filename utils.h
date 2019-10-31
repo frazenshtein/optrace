@@ -14,4 +14,5 @@ namespace NOPTrace {
     std::string ReadLink(const std::string& filename) noexcept;
     std::string GetCommandLine(pid_t pid, long limit=-1) noexcept;
     std::string HumanReadableSize(size_t bytes) noexcept;
+    void StripString(std::string &str) noexcept;
 }
