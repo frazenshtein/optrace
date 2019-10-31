@@ -146,6 +146,8 @@ namespace NOPTrace {
 
     void TContext::SearchAndRegisterCoreDumpFile(TProcInfoPtr pinfo, int termSig) noexcept {
         // TODO We need to use pinfo->Cwd and trace (f)chdir if SearchForCoreDumps is specified
+        // check process creation and finish time with core m_time, store (path, m_time, size)
+        // to avoid discovering same core more than once
         std::string filename = RecoverCoreDumpFile(pinfo->Pid, pinfo->CommandName, GetCwd(), termSig);
         if (!filename.empty()) {
             auto output = std::make_shared<TOutputFile>(filename, GetFileLength(filename), pinfo);
