@@ -1,3 +1,5 @@
+SRCDIR:=$(strip $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))/src
+
 GCC_VER_GTE70 := $(shell echo `g++ -dumpversion | cut -f1-2 -d.` \>= 7.0 | bc)
 ifeq ($(GCC_VER_GTE70), 0)
   CLANG_VER_GTE35 := $(shell echo `clang++ -dumpversion | cut -f1-2 -d.` \>= 3.5 | bc)
@@ -20,9 +22,9 @@ CFLAGS=-std=c++14 -O3 -Wall
 
 BIN=optrace
 
-CPPS = $(shell bash -c 'ls *.cpp')
-HEADERS = $(shell bash -c 'ls *.h')
-OBJECTS = $(shell bash -c 'ls *.cpp | tr "\\n" " " | sed s/.cpp/.cpp.o/g')
+CPPS = $(shell bash -c 'ls $(SRCDIR)/*.cpp')
+HEADERS = $(shell bash -c 'ls $(SRCDIR)/*.h')
+OBJECTS = $(shell bash -c 'ls $(SRCDIR)/*.cpp | tr "\\n" " " | sed s/.cpp/.cpp.o/g')
 
 .PHONY: Makefile
 
@@ -30,7 +32,7 @@ optrace: $(OBJECTS)
 	$(CXX) -o $(BIN) $(OBJECTS) $(CFLAGS)
 
 %.o: $(CPPS) $(HEADERS)
-	$(CXX) -c $(shell bash -c 'basename -s .o $@') -o $@ $(CFLAGS)
+	$(CXX) -c $(SRCDIR)/$(shell basename $(shell basename -s .o $@)) -o $@ $(CFLAGS)
 
 clean:
-	rm -f $(BIN) *.o
+	rm -f $(BIN) $(SRCDIR)/*.o
