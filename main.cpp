@@ -14,7 +14,7 @@ NOPTrace::TOptions GetDefaults() {
     return {
         .Output="",
         .AppendOutput=false,
-        .FollowForks=true,
+        .FollowForks=false,
         .JailForks=true,
         .HumanReadableSizes=false,
         .FilesInReport=24,
@@ -43,7 +43,7 @@ void printHelp() {
               << "  -s|--forward-sig SIG  append signum to the list of forwarding signals to the PROG\n"
               << "                        (default: [SIGINT])\n"
               << "\nTracing:\n"
-              // TODO << "  -f|--follow-forks     follow forks\n"
+              << "  -f|--follow-forks     follow forks\n"
               << "  -J|--no-jail-forks    don't kill all created processes, when optrace exits\n"
               << "  -S|--no-seccomp       don't use seccomp anyway\n";
 }
