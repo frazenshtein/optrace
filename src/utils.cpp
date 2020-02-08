@@ -140,6 +140,11 @@ namespace NOPTrace {
         int log = std::log2(bytes);
         int k = log / 10;
 
+        if (k == 0) {
+            sprintf(&buff[0], "%d%s", int(bytes), suffixes[0]);
+            return buff;
+        }
+
         double val(bytes);
         for (int i = k; i > 0; i--) {
             val /= 1024;

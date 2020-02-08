@@ -1,6 +1,28 @@
 # optrace
 Record output files written by each process
 
+## Usage example
+`-> cat sample.py`
+```python
+import os
+
+with open("out.txt", "w") as afile:
+    afile.write("world\nhello")
+os.system("cat out.txt | sort > out.sort.txt")
+os.abort()
+```
+`-> optrace -hf python sample.py`
+```
+Output tracer summary report (limit: 24)
+   3.2MiB /tmp/core (pid:22000|94249052452416)
+      12b /tmp/out.sort.txt (pid:22003|94249052451712)
+      11b /tmp/out.txt (pid:22000|94249052452416)
+Proc legend:
+  22003|94249052451712 (ppid:22001) sort
+  22000|94249052452416 (ppid:0) python sample.py
+Total output: 3.2MiB
+```
+## Help
 ```
 Usage: optrace [-fJhaCDS] [-o FILE] [-c VAL]
                [-r VAL] [-j VAL] [-s SIG] PROG [ARGS]
@@ -28,28 +50,7 @@ Tracing:
   -C|--no-seccomp          don't use seccomp anyway
 ```
 
-== Usage example
-```
--> cat sample.py
-import os
-
-with open("out.txt", "w") as afile:
-    afile.write("world\nhello")
-os.system("cat out.txt | sort > out.sort.txt")
-os.abort()
-
--> optrace -hf python sample.py
-Output tracer summary report (limit: 24)
-   3.2MiB /tmp/core (pid:19743|94441847461440)
-    12.0b /tmp/out.sort.txt (pid:19746|94441847463072)
-    11.0b /tmp/out.txt (pid:19743|94441847461440)
-Proc legend:
-  19746|94441847463072 (ppid:19744) sort
-  19743|94441847461440 (ppid:0) python sample.py
-Total output: 3.2MiB
-```
-
-== Building
+## Building
 ```
 make -j
 ```
