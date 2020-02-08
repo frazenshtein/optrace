@@ -53,7 +53,6 @@ namespace NOPTrace {
 
     TProcStatePtr TContext::NewProcState(size_t pid, size_t ppid) const noexcept {
         std::string cmdline = GetCommandLine(pid, Options.CommandLengthLimit);
-
         std::string comm;
         if (Options.SearchForCoreDumps) {
             std::stringstream ss;

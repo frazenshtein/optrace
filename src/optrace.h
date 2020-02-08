@@ -15,6 +15,8 @@ namespace NOPTrace {
         bool UseSecComp;
         bool SearchForCoreDumps;
         std::vector<int> ForwardingSignals;
+        bool ForwardAllSignals;
+        int NThreads;
     };
 
     int TraceMe(const struct TOptions opts);

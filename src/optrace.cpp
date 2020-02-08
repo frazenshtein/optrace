@@ -325,7 +325,10 @@ namespace NOPTrace {
 
         SetupTracer(TraceePid, opts, useSecComp);
 
-        if (!opts.ForwardingSignals.empty()) {
+        if (opts.ForwardAllSignals) {
+            std::vector<int> signals {SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGABRT, SIGFPE, SIGSEGV, SIGPIPE, SIGALRM, SIGTERM, SIGUSR1, SIGUSR2};
+            SetupSignalForwarding(signals);
+        } else if (!opts.ForwardingSignals.empty()) {
             SetupSignalForwarding(opts.ForwardingSignals);
         }
         // restore signal mask in the parent

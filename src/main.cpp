@@ -22,52 +22,59 @@ NOPTrace::TOptions GetDefaults() {
         .UseSecComp=true,
         .SearchForCoreDumps=true,
         .ForwardingSignals={SIGINT},
+        .ForwardAllSignals=false,
+        .NThreads=2,
     };
 }
 
 void printHelp() {
     auto defaultOpts = GetDefaults();
 
-    std::cout << "Usage: optrace [-fJhaSC] [-o FILE] [-c VAL]\n"
-              << "               [-r VAL] [-s SIG] PROG [ARGS]\n"
+    std::cout << "Usage: optrace [-fJhaCDS] [-o FILE] [-c VAL]\n"
+              << "               [-r VAL] [-j VAL] [-s SIG] PROG [ARGS]\n"
               << "\nOutput format:\n"
-              << "  -c|--cmdline-size VAL maximum string size for cmd lines\n"
-              << "                        (negative for unlimited, 0 to disable, default:" << defaultOpts.CommandLengthLimit  << ")\n"
-              << "  -r|--report-size VAL  number of files to print in report\n"
-              << "                        (negative for unlimited, 0 to disable, default:" << defaultOpts.FilesInReport  << ")\n"
-              << "  -o|--output FILE      send report to FILE instead of stderr\n"
-              << "  -a|--append           don't overwrite output FILE\n"
-              << "  -h|--human-readable   print sizes in human readable format\n"
+              << "  -c|--cmdline-size VAL    maximum string size for cmd lines\n"
+              << "                           (negative for unlimited, 0 to disable, default:" << defaultOpts.CommandLengthLimit  << ")\n"
+              << "  -r|--report-size VAL     number of files to print in report\n"
+              << "                           (negative for unlimited, 0 to disable, default:" << defaultOpts.FilesInReport  << ")\n"
+              << "  -o|--output FILE         send report to FILE instead of stderr\n"
+              << "  -a|--append              don't overwrite output FILE\n"
+              << "  -h|--human-readable      print sizes in human readable format\n"
               << "\nBehavior:\n"
-              << "  -C|--no-coredumps     don't take into account core dump files\n"
-              << "  -s|--forward-sig SIG  append signum to the list of forwarding signals to the PROG\n"
-              << "                        (default: [SIGINT])\n"
+              << "  -D|--no-coredumps        don't take into account core dump files\n"
+              << "  -s|--forward-sig SIG     append signum to the list of forwarding signals to the PROG\n"
+              << "                           (default: [SIGINT])\n"
+              << "  -S|--forward-all-signals append signum to the list of forwarding signals to the PROG\n"
               << "\nTracing:\n"
-              << "  -f|--follow-forks     follow forks\n"
-              << "  -J|--no-jail-forks    don't kill all created processes, when optrace exits\n"
-              << "  -S|--no-seccomp       don't use seccomp anyway\n";
+              << "  -j|--threads VAL         use VAL threads to trace\n"
+              << "                           (default: 2)\n"
+              << "  -f|--follow-forks        follow forks\n"
+              << "  -J|--no-jail-forks       don't kill all created processes, when optrace exits\n"
+              << "  -C|--no-seccomp          don't use seccomp anyway\n";
 }
 
 int main(int argc, char* argv[]) {
     auto optraceOpts = GetDefaults();
 
-    const char* const short_cli_options = "+fJho:ac:r:SCs:h";
+    const char* const short_cli_options = "+fJho:ac:r:j:CDs:Sh";
     const struct option cli_options[] = {
-        {"follow-forks",    no_argument,        0, 'f'},
-        {"no-jail-forks",   no_argument,        0, 'J'},
-        {"human-readable",  no_argument,        0, 'h'},
-        {"output",          no_argument,        0, 'o'},
-        {"append",          no_argument,        0, 'a'},
-        {"cmdline-size",    required_argument,  0, 'c'},
-        {"report-size",     required_argument,  0, 'r'},
-        {"no-seccomp",      no_argument,        0, 'S'},
-        {"no-coredumps",    no_argument,        0, 'C'},
-        {"forward-sig",     required_argument,  0, 's'},
-        {"help",            no_argument,        0, 0},
+        {"follow-forks",        no_argument,        0, 'f'},
+        {"no-jail-forks",       no_argument,        0, 'J'},
+        {"human-readable",      no_argument,        0, 'h'},
+        {"output",              no_argument,        0, 'o'},
+        {"append",              no_argument,        0, 'a'},
+        {"cmdline-size",        required_argument,  0, 'c'},
+        {"report-size",         required_argument,  0, 'r'},
+        {"threads",             required_argument,  0, 'j'},
+        {"no-seccomp",          no_argument,        0, 'C'},
+        {"no-coredumps",        no_argument,        0, 'D'},
+        {"forward-sig",         required_argument,  0, 's'},
+        {"forward-all-signals", no_argument,        0, 'S'},
+        {"help",                no_argument,        0, 0},
         {0, 0, 0, 0}
     };
 
-    int signum;
+    int signum, nthreads;
     char c = 0;
     while (c != -1) {
         c = getopt_long(argc, argv, short_cli_options, cli_options, nullptr);
@@ -104,11 +111,18 @@ int main(int argc, char* argv[]) {
                     optraceOpts.FilesInReport = atoi(optarg);
                 }
                 break;
-            case 'S':
+            case 'C':
                 optraceOpts.UseSecComp = false;
                 break;
-            case 'C':
+            case 'D':
                 optraceOpts.SearchForCoreDumps = false;
+                break;
+            case 'j':
+                nthreads = atoi(optarg);
+                if (nthreads < 1) {
+                    std::cerr << "Invalid threads count: " << nthreads << std::endl;
+                }
+                optraceOpts.NThreads = nthreads;
                 break;
             case 's':
                 signum = atoi(optarg);
@@ -116,6 +130,9 @@ int main(int argc, char* argv[]) {
                     std::cerr << "Invalid signal number: " << signum << std::endl;
                 }
                 optraceOpts.ForwardingSignals.push_back(signum);
+                break;
+            case 'S':
+                optraceOpts.ForwardAllSignals = true;
                 break;
             // Unknown option/Missing argument (getopt machinery prints error message)
             case '?':

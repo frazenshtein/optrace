@@ -53,6 +53,7 @@ namespace NOPTrace {
                 file.read(&res[0], limit);
             }
             StripString(res);
+            return res;
         }
         return "";
     }
