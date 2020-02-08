@@ -47,7 +47,7 @@ void printHelp() {
               << "  -S|--forward-all-signals append signum to the list of forwarding signals to the PROG\n"
               << "\nTracing:\n"
               << "  -j|--threads VAL         use VAL threads to trace\n"
-              << "                           (default: 2)\n"
+              << "                           (default: " << defaultOpts.NThreads << ")\n"
               << "  -f|--follow-forks        follow forks\n"
               << "  -J|--no-jail-forks       don't kill all created processes, when optrace exits\n"
               << "  -C|--no-seccomp          don't use seccomp anyway\n";

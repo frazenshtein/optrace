@@ -13,7 +13,7 @@
 namespace NOPTrace {
     class TContext {
     public:
-        TContext(struct TOptions opts)
+        TContext(const struct TOptions opts)
             : Options(opts)
             , FileStorage(opts.FilesInReport)
         {

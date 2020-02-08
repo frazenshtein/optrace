@@ -30,8 +30,8 @@ namespace NOPTrace {
         void Enroll(size_t nbytes) noexcept;
         void EnrollNoShift(size_t nbytes, size_t offset) noexcept;
 
-        bool IsAppendSet() noexcept;
-        bool IsCloexecSet() noexcept;
+        bool IsAppendSet() const noexcept;
+        bool IsCloexecSet() const noexcept;
 
         void SetFlags(size_t flags) noexcept;
         void SetCloexecFlag(bool on) noexcept;

@@ -35,7 +35,7 @@ namespace NOPTrace {
     }
 
     bool IsFile(int fd) noexcept {
-        static struct stat st;
+        static thread_local struct stat st;
         assert(fstat(fd, &st) >= 0);
         return S_ISREG(st.st_mode);
     }
@@ -135,7 +135,7 @@ namespace NOPTrace {
             "GiB",
             "PiB"
         };
-        static char buff[8];
+        static thread_local char buff[8];
 
         int log = std::log2(bytes);
         int k = log / 10;

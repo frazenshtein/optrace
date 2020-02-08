@@ -26,11 +26,11 @@ namespace NOPTrace {
         Filename = s.Filename;
     }
 
-    bool TFileState::IsAppendSet() noexcept {
+    bool TFileState::IsAppendSet() const noexcept {
         return Flags & O_APPEND;
     }
 
-    bool TFileState::IsCloexecSet() noexcept {
+    bool TFileState::IsCloexecSet() const noexcept {
         return Flags & O_CLOEXEC;
     }
 
