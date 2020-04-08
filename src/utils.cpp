@@ -19,13 +19,27 @@ namespace NOPTrace {
         struct rlimit rlim;
         assert(getrlimit(RLIMIT_NOFILE, &rlim) == 0);
 
-        int fd = rlim.rlim_cur;
-        while (fd >= 0) {
-            if (fcntl(fd, F_GETFD) >= 0)
-                break;
-            fd--;
+        long rlim_cur = rlim.rlim_cur;
+
+        int l = 0, r = rlim.rlim_cur, fd = 0;
+        while (l < r) {
+            rlim.rlim_cur = ((r - l) / 2) + l;
+            assert(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
+
+            if ((fd = open("/dev/null", 0)) >= 0) {
+                close(fd);
+                r = rlim.rlim_cur - 1;
+            } else {
+                if (errno == EINTR) {
+                    continue;
+                }
+                l = rlim.rlim_cur;
+            }
         }
-        return fd;
+
+        rlim.rlim_cur = rlim_cur;
+        assert(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
+        return l - 1;
     }
 
     bool KernelVerGreaterOrEqual(const char* ver) noexcept {
@@ -104,7 +118,7 @@ namespace NOPTrace {
         }
     }
 
-    void StripString(std::string &str) noexcept {
+    void StripString(std::string& str) noexcept {
         static const char* ws = " \t\n\r";
         str.erase(str.find_last_not_of(ws) + 1);
         str.erase(0, str.find_first_not_of(ws));
@@ -133,8 +147,7 @@ namespace NOPTrace {
             "KiB",
             "MiB",
             "GiB",
-            "PiB"
-        };
+            "PiB"};
         static thread_local char buff[8];
 
         int log = std::log2(bytes);
