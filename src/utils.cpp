@@ -16,13 +16,12 @@
 
 namespace NOPTrace {
     int parseLine(char* line) noexcept {
-        int i = strlen(line);
-        while (*line < '0' || *line > '9') {
-            line++;
+        char* p = line;
+        while (*p > '0' && *p < '9') {
+            p++;
         }
-        line[i - 3] = '\0';
-        i = atoi(line);
-        return i;
+        *p = '\0';
+        return atoi(line);
     }
 
     int MyHighestFd() noexcept {
@@ -40,7 +39,7 @@ namespace NOPTrace {
 
         char* fdsize = strstr(line, "FDSize:");
         assert(fdsize);
-        fd = parseLine(fdsize + 7);
+        fd = parseLine(fdsize + 8);
 
         while (fd >= 0) {
             if (fcntl(fd, F_GETFD) >= 0)
