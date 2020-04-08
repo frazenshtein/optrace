@@ -26,13 +26,13 @@ namespace NOPTrace {
             rlim.rlim_cur = ((r - l) / 2) + l;
             assert(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
 
-            if ((fd = open("/dev/null", 0)) >= 0) {
+            while ((fd = open("/dev/null", 0)) < 0 && errno == EINTR) {
+            }
+
+            if (fd >= 0) {
                 close(fd);
                 r = rlim.rlim_cur - 1;
             } else {
-                if (errno == EINTR) {
-                    continue;
-                }
                 l = rlim.rlim_cur;
             }
         }
