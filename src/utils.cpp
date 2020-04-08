@@ -29,6 +29,7 @@ namespace NOPTrace {
         int size = 0, ret = 0;
         char line[512] = {0};
 
+        // rlim_cur of the RLIMIT_NOFILE might really huge
         int fd = open("/proc/self/status", 0);
         while (size < 512) {
             while ((ret = read(fd, &line + size, 512 - size)) < 0 && errno == EINTR) {
