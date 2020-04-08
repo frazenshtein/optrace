@@ -15,31 +15,38 @@
 #include <unistd.h>
 
 namespace NOPTrace {
-    int MyHighestFd() noexcept {
-        struct rlimit rlim;
-        assert(getrlimit(RLIMIT_NOFILE, &rlim) == 0);
-
-        long rlim_cur = rlim.rlim_cur;
-
-        int l = 0, r = rlim.rlim_cur, fd = 0;
-        while (l < r) {
-            rlim.rlim_cur = ((r - l) / 2) + l;
-            assert(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
-
-            while ((fd = open("/dev/null", 0)) < 0 && errno == EINTR) {
-            }
-
-            if (fd >= 0) {
-                close(fd);
-                r = rlim.rlim_cur - 1;
-            } else {
-                l = rlim.rlim_cur;
-            }
+    int parseLine(char* line) noexcept {
+        int i = strlen(line);
+        while (*line < '0' || *line > '9') {
+            line++;
         }
+        line[i - 3] = '\0';
+        i = atoi(line);
+        return i;
+    }
 
-        rlim.rlim_cur = rlim_cur;
-        assert(setrlimit(RLIMIT_NOFILE, &rlim) == 0);
-        return l - 1;
+    int MyHighestFd() noexcept {
+        int size = 0, ret = 0;
+        char line[512] = {0};
+
+        int fd = open("/proc/self/status", 0);
+        while (size < 512) {
+            while ((ret = read(fd, &line + size, 512 - size)) < 0 && errno == EINTR) {
+            }
+            size += ret;
+        }
+        close(fd);
+
+        char* fdsize = strstr(line, "FDSize:");
+        assert(fdsize);
+        fd = parseLine(fdsize + 7);
+
+        while (fd >= 0) {
+            if (fcntl(fd, F_GETFD) >= 0)
+                break;
+            fd--;
+        }
+        return fd;
     }
 
     bool KernelVerGreaterOrEqual(const char* ver) noexcept {
