@@ -16,8 +16,11 @@
 
 namespace NOPTrace {
     int parseLine(char* line) noexcept {
+        while (*line < '0' || *line > '9') {
+            line++;
+        }
         char* p = line;
-        while (*p > '0' && *p < '9') {
+        while (*p >= '0' && *p <= '9') {
             p++;
         }
         *p = '\0';
