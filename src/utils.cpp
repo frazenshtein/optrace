@@ -28,13 +28,15 @@ namespace NOPTrace {
     }
 
     int MyHighestFd() noexcept {
-        int size = 0, ret = 0;
-        char line[512] = {0};
+        const int buffSize = 512;
+        const int limit = buffSize - 1;
+        int size = 0, ret = 1;
+        char line[buffSize] = {0};
 
-        // rlim_cur of the RLIMIT_NOFILE might really huge
+        // rlim_cur of the RLIMIT_NOFILE might be really huge
         int fd = open("/proc/self/status", 0);
-        while (size < 512) {
-            while ((ret = read(fd, &line + size, 512 - size)) < 0 && errno == EINTR) {
+        while (size < limit && ret > 0) {
+            while ((ret = read(fd, &line + size, limit - size)) < 0 && errno == EINTR) {
             }
             size += ret;
         }
@@ -42,7 +44,7 @@ namespace NOPTrace {
 
         char* fdsize = strstr(line, "FDSize:");
         assert(fdsize);
-        fd = parseLine(fdsize + 8);
+        fd = parseLine(fdsize + 7);
 
         while (fd >= 0) {
             if (fcntl(fd, F_GETFD) >= 0)

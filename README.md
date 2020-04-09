@@ -6,21 +6,24 @@ optrace records output files written by each process and accumulate total writte
 ```python
 import os
 
+print("dumping data...")
 with open("out.txt", "w") as afile:
-    afile.write("world\nhello")
+        afile.write("world\nhello")
+print("sorting data...")
 os.system("cat out.txt | sort > out.sort.txt")
 os.abort()
 ```
-`-> optrace -hf python sample.py`
+`-> optrace -hf python sample.py >log`
 ```
 Output tracer summary report (limit: 24)
-   3.2MiB /tmp/core (pid:22000|94249052452416)
-      12b /tmp/out.sort.txt (pid:22003|94249052451712)
-      11b /tmp/out.txt (pid:22000|94249052452416)
+   380KiB /tmp/core (pid:13830|37900288)
+      32b /tmp/log.txt (pid:13830|37900288)
+      12b /tmp/out.sort.txt (pid:13833|37900016)
+      11b /tmp/out.txt (pid:13830|37900288)
 Proc legend:
-  22003|94249052451712 (ppid:22001) sort
-  22000|94249052452416 (ppid:0) python sample.py
-Total output: 3.2MiB
+  13833|37900016 (ppid:13831) sort
+  13830|37900288 (ppid:0) python sample.py
+Total output: 380KiB
 ```
 ## Help
 ```

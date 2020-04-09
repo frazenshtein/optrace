@@ -247,7 +247,16 @@ namespace NOPTrace {
     bool TContext::OpDup2(pid_t pid, size_t oldfd, size_t newfd) noexcept {
         auto& fds = GetProcState(pid)->Fds;
 
-        if ((oldfd == newfd) || (oldfd >= fds.size()) || !fds[oldfd]) {
+        if (oldfd == newfd) {
+            return false;
+        }
+        // newfd is valid previously opened file descriptor, we need to close it
+        if (newfd < fds.size() && !!fds[newfd]) {
+            OpClose(pid, newfd);
+        }
+
+        // oldfd is not a file descriptor opened for writing
+        if ((oldfd >= fds.size()) || !fds[oldfd]) {
             return false;
         }
 
