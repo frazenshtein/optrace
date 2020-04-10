@@ -1,5 +1,5 @@
 # optrace
-optrace records output files written by each process and accumulate total written data size.
+optrace records output files written by each process and accumulates total written data size.
 
 ## Usage example
 `-> cat sample.py`
