@@ -17,7 +17,7 @@ os.abort()
 ```
 Output tracer summary report (limit: 24)
    380KiB /tmp/core (pid:13830|37900288)
-      32b /tmp/log.txt (pid:13830|37900288)
+      32b /tmp/log (pid:13830|37900288)
       12b /tmp/out.sort.txt (pid:13833|37900016)
       11b /tmp/out.txt (pid:13830|37900288)
 Proc legend:
