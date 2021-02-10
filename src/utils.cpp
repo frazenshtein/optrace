@@ -77,6 +77,7 @@ namespace NOPTrace {
             } else if (limit > 0) {
                 res.resize(limit);
                 file.read(&res[0], limit);
+                res.resize(file.gcount());
             }
             StripString(res);
             return res;
