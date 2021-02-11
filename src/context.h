@@ -15,7 +15,7 @@ namespace NOPTrace {
     public:
         TContext(const struct TOptions opts)
             : Options(opts)
-            , FileStorage(opts.FilesInReport)
+            , FileStorage(opts.FilesInReport, opts.StoreEmptyFiles)
         {
         }
 

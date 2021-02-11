@@ -2,9 +2,13 @@
 
 namespace NOPTrace {
     void TFileStorage::AddFileEntry(TOutputFilePtr file) noexcept {
+        if (!Capacity) {
+            return;
+        }
+
         size_t size = file->Size;
 
-        if (!size || !Capacity) {
+        if (!StoreEmptyFiles && !size) {
             return;
         }
 

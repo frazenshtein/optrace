@@ -24,6 +24,7 @@ NOPTrace::TOptions GetDefaults() {
         .ForwardingSignals={SIGINT},
         .ForwardAllSignals=false,
         .NThreads=2,
+        .StoreEmptyFiles=false,
     };
 }
 
@@ -42,6 +43,7 @@ void printHelp() {
               << "  -h|--human-readable      print sizes in human readable format\n"
               << "\nBehavior:\n"
               << "  -D|--no-coredumps        don't take into account core dump files\n"
+              << "  -e|--empty-files         trace empty files\n"
               << "  -s|--forward-sig SIG     append signum to the list of forwarding signals to the PROG\n"
               << "                           (default: [SIGINT])\n"
               << "  -S|--forward-all-signals append signum to the list of forwarding signals to the PROG\n"
@@ -56,7 +58,7 @@ void printHelp() {
 int main(int argc, char* argv[]) {
     auto optraceOpts = GetDefaults();
 
-    const char* const short_cli_options = "+fJho:ac:r:j:CDs:Sh";
+    const char* const short_cli_options = "+fJho:ac:r:j:CDes:Sh";
     const struct option cli_options[] = {
         {"follow-forks",        no_argument,        0, 'f'},
         {"no-jail-forks",       no_argument,        0, 'J'},
@@ -68,6 +70,7 @@ int main(int argc, char* argv[]) {
         {"threads",             required_argument,  0, 'j'},
         {"no-seccomp",          no_argument,        0, 'C'},
         {"no-coredumps",        no_argument,        0, 'D'},
+        {"empty-files",         no_argument,        0, 'e'},
         {"forward-sig",         required_argument,  0, 's'},
         {"forward-all-signals", no_argument,        0, 'S'},
         {"help",                no_argument,        0, 0},
@@ -133,6 +136,9 @@ int main(int argc, char* argv[]) {
                 break;
             case 'S':
                 optraceOpts.ForwardAllSignals = true;
+                break;
+            case 'e':
+                optraceOpts.StoreEmptyFiles = true;
                 break;
             // Unknown option/Missing argument (getopt machinery prints error message)
             case '?':

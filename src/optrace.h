@@ -17,6 +17,7 @@ namespace NOPTrace {
         std::vector<int> ForwardingSignals;
         bool ForwardAllSignals;
         int NThreads;
+        bool StoreEmptyFiles;
     };
 
     int TraceMe(const struct TOptions opts);

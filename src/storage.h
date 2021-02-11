@@ -14,9 +14,10 @@ namespace NOPTrace {
 
     class TFileStorage {
     public:
-        TFileStorage(long capacity)
+        TFileStorage(long capacity, bool storeEmptyFiles)
             : Capacity(capacity)
             , OutputSize(0)
+            , StoreEmptyFiles(storeEmptyFiles)
             , Queue(TFileSizeGreater())
         {
         }
@@ -31,6 +32,7 @@ namespace NOPTrace {
     private:
         long Capacity;
         size_t OutputSize;
+        bool StoreEmptyFiles;
 
         using TMaxOutFilesQueue = std::priority_queue<TOutputFilePtr, std::vector<TOutputFilePtr>, TFileSizeGreater>;
         TMaxOutFilesQueue Queue;
