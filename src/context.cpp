@@ -410,14 +410,16 @@ namespace NOPTrace {
 
         std::ostream stream(streamBufPtr);
 
-        stream << "Output tracer summary report";
-        if (Options.FilesInReport > 0) {
-            stream << " (limit: " << Options.FilesInReport << ")";
-        }
-        stream << std::endl;
-
         std::unordered_set<TProcInfo const*> procInfoSet;
         const auto files = FileStorage.GetLargestFiles();
+
+        if (files.size()) {
+	        stream << "Output tracer summary report";
+	        if (Options.FilesInReport > 0) {
+	            stream << " (limit: " << Options.FilesInReport << ")";
+	        }
+	        stream << std::endl;
+        }
 
         int padding = 9;
         if (!Options.HumanReadableSizes) {
@@ -425,7 +427,9 @@ namespace NOPTrace {
             for (const auto& e : files) {
                 max = std::max(max, e->Size);
             }
-            padding = std::log10(max) + 3;
+	    if (max) {
+                padding = std::log10(max) + 3;
+            }
         }
 
         bool dumpProcLegend = Options.CommandLengthLimit != 0;
@@ -445,7 +449,7 @@ namespace NOPTrace {
             procInfoSet.emplace(entry->ProcInfo.get());
         }
 
-        if (dumpProcLegend) {
+        if (dumpProcLegend && procInfoSet.size()) {
             stream << "Proc legend:" << std::endl;
             for (auto& pinfo : procInfoSet) {
                 stream << "  " << pinfo->Pid << "|" << (unsigned long)pinfo << " (ppid:" << pinfo->Ppid << ") " << pinfo->CommandLine << std::endl;
