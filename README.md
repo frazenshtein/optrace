@@ -32,7 +32,7 @@ Usage: optrace [-fJhaCDS] [-o FILE] [-c VAL]
 
 Output format:
   -c|--cmdline-size VAL    maximum string size for cmd lines
-                           (negative for unlimited, 0 to disable, default:100)
+                           (negative for unlimited, 0 to disable, default:120)
   -r|--report-size VAL     number of files to print in report
                            (negative for unlimited, 0 to disable, default:24)
   -o|--output FILE         send report to FILE instead of stderr
@@ -41,15 +41,15 @@ Output format:
 
 Behavior:
   -D|--no-coredumps        don't take into account core dump files
+  -e|--empty-files         trace empty files
   -s|--forward-sig SIG     append signum to the list of forwarding signals to the PROG
                            (default: [SIGINT])
   -S|--forward-all-signals append signum to the list of forwarding signals to the PROG
 
 Tracing:
-  -j|--threads VAL         use VAL threads to trace
-                           (default: 2)
-  -f|--follow-forks        follow forks
+  -F|--no-follow-forks     don't follow forks
   -J|--no-jail-forks       don't kill all created processes, when optrace exits
+  -W|--no-wait-daemons     don't wait for daemon processes when following forks
   -C|--no-seccomp          don't use seccomp anyway
 ```
 
