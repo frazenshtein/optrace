@@ -14,16 +14,16 @@ NOPTrace::TOptions GetDefaults() {
     return {
         .Output="",
         .AppendOutput=false,
-        .FollowForks=false,
+        .FollowForks=true,
+        .WaitDaemons=true,
         .JailForks=true,
         .HumanReadableSizes=false,
         .FilesInReport=24,
-        .CommandLengthLimit=100,
+        .CommandLengthLimit=120,
         .UseSecComp=true,
         .SearchForCoreDumps=true,
         .ForwardingSignals={SIGINT},
         .ForwardAllSignals=false,
-        .NThreads=2,
         .StoreEmptyFiles=false,
     };
 }
@@ -48,20 +48,20 @@ void printHelp() {
               << "                           (default: [SIGINT])\n"
               << "  -S|--forward-all-signals append signum to the list of forwarding signals to the PROG\n"
               << "\nTracing:\n"
-              << "  -j|--threads VAL         use VAL threads to trace\n"
-              << "                           (default: " << defaultOpts.NThreads << ")\n"
-              << "  -f|--follow-forks        follow forks\n"
+              << "  -F|--no-follow-forks     don't follow forks\n"
               << "  -J|--no-jail-forks       don't kill all created processes, when optrace exits\n"
+              << "  -W|--no-wait-daemons     don't wait for daemon processes when following forks\n"
               << "  -C|--no-seccomp          don't use seccomp anyway\n";
 }
 
 int main(int argc, char* argv[]) {
     auto optraceOpts = GetDefaults();
 
-    const char* const short_cli_options = "+fJho:ac:r:j:CDes:Sh";
+    const char* const short_cli_options = "+FJWho:ac:r:j:CDes:Sh";
     const struct option cli_options[] = {
-        {"follow-forks",        no_argument,        0, 'f'},
+        {"no-follow-forks",     no_argument,        0, 'F'},
         {"no-jail-forks",       no_argument,        0, 'J'},
+        {"no-wait-daemons",     no_argument,        0, 'W'},
         {"human-readable",      no_argument,        0, 'h'},
         {"output",              no_argument,        0, 'o'},
         {"append",              no_argument,        0, 'a'},
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
         {0, 0, 0, 0}
     };
 
-    int signum, nthreads;
+    int signum;
     char c = 0;
     while (c != -1) {
         c = getopt_long(argc, argv, short_cli_options, cli_options, nullptr);
@@ -85,11 +85,14 @@ int main(int argc, char* argv[]) {
             case 0:
                 printHelp();
                 return 0;
-            case 'f':
-                optraceOpts.FollowForks = true;
+            case 'F':
+                optraceOpts.FollowForks = false;
                 break;
             case 'J':
                 optraceOpts.JailForks = false;
+                break;
+            case 'W':
+                optraceOpts.WaitDaemons = false;
                 break;
             case 'h':
                 optraceOpts.HumanReadableSizes = true;
@@ -119,13 +122,6 @@ int main(int argc, char* argv[]) {
                 break;
             case 'D':
                 optraceOpts.SearchForCoreDumps = false;
-                break;
-            case 'j':
-                nthreads = atoi(optarg);
-                if (nthreads < 1) {
-                    std::cerr << "Invalid threads count: " << nthreads << std::endl;
-                }
-                optraceOpts.NThreads = nthreads;
                 break;
             case 's':
                 signum = atoi(optarg);

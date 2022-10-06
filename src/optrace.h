@@ -8,6 +8,7 @@ namespace NOPTrace {
         std::string Output;
         bool AppendOutput;
         bool FollowForks;
+        bool WaitDaemons;
         bool JailForks;
         bool HumanReadableSizes;
         int FilesInReport;
@@ -16,7 +17,6 @@ namespace NOPTrace {
         bool SearchForCoreDumps;
         std::vector<int> ForwardingSignals;
         bool ForwardAllSignals;
-        int NThreads;
         bool StoreEmptyFiles;
     };
 

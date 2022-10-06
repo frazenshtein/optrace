@@ -98,7 +98,7 @@ namespace NOPTrace {
         PtraceSetOptions(pid, ptraceOpts);
     }
 
-    int RunTracer(TContext& context, pid_t traceePid, bool followForks, bool useSecComp) {
+    int RunTracer(TContext& context, pid_t traceePid, bool followForks, bool waitDaemons, bool useSecComp) {
         // Restart tracee signal-delivery-stop
         if (useSecComp) {
             assert(!PtraceContinueSyscall(traceePid, 0));
@@ -180,7 +180,8 @@ namespace NOPTrace {
             if (exitCode != EXIT_CODE_UNKNOWN) {
                 vanishThread(pid, true);
                 if (pid == traceePid) {
-                    if (followForks) {
+                    // Exit immediately if daemon processes waiting wasn't requested
+                    if (followForks && waitDaemons) {
                         if (traceeExitCode == EXIT_CODE_UNKNOWN) {
                             traceeExitCode = exitCode;
                         }
@@ -337,7 +338,7 @@ namespace NOPTrace {
         TContext context(opts);
         context.RegisterTracee(TraceePid);
 
-        int rc = RunTracer(context, TraceePid, opts.FollowForks, useSecComp);
+        int rc = RunTracer(context, TraceePid, opts.FollowForks, opts.WaitDaemons, useSecComp);
         rc = context.PostProcess(rc);
 
         if (argv) {
