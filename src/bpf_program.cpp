@@ -7,6 +7,7 @@
 
 #include <fcntl.h>
 #include <linux/filter.h>
+#include <stddef.h>
 #include <sys/prctl.h>
 #include <sys/socket.h>
 
