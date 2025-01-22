@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
     };
 
     int signum;
-    char c = 0;
+    int c = 0;
     while (c != -1) {
         c = getopt_long(argc, argv, short_cli_options, cli_options, nullptr);
         switch(c) {
