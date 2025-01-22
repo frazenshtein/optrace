@@ -270,10 +270,7 @@ namespace NOPTrace {
 
                 if (threadPrevSyscall == SYSCALL_UNDEFINED) {
                     threadPrevSyscall = GetSyscallNumber(registers);
-                    // rax stores return data from syscall.
-                    // However, before syscall-exit-stop it's unknown and kernel set -ENOSYS.
-                    // So this is kind of a sanity check,
-                    // that we don't misinterpret syscall-entry-stop as syscall-exit-stop
+                    // For more info see GetSyscallNumber
                     if ((int)threadPrevSyscall == -2) {
                         return -2;
                     }
