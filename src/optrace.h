@@ -18,6 +18,8 @@ namespace NOPTrace {
         std::vector<int> ForwardingSignals;
         bool ForwardAllSignals;
         bool StoreEmptyFiles;
+        std::string InterruptionTarget;
+        int InterruptionSignal;
     };
 
     int TraceMe(const struct TOptions opts);

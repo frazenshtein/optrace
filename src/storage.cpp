@@ -7,7 +7,6 @@ namespace NOPTrace {
         }
 
         size_t size = file->Size;
-
         if (!StoreEmptyFiles && !size) {
             return;
         }

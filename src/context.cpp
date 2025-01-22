@@ -15,6 +15,8 @@
 
 #include <sched.h>
 #include <fcntl.h>
+#include <fnmatch.h>
+#include <signal.h>
 
 namespace NOPTrace {
     void TContext::RegisterTracee(pid_t pid) noexcept {
@@ -53,6 +55,7 @@ namespace NOPTrace {
 
     TProcStatePtr TContext::NewProcState(size_t pid, size_t ppid) const noexcept {
         std::string cmdline = GetCommandLine(pid, Options.CommandLengthLimit);
+        
         std::string comm;
         if (Options.SearchForCoreDumps) {
             std::stringstream ss;
@@ -218,6 +221,11 @@ namespace NOPTrace {
         ss << "/proc/" << pid << "/fd/" << fd;
 
         std::string filename = ReadLink(ss.str());
+
+        if (Options.InterruptionSignal) {
+            ProcessInterruptionTarget(pid, filename.data());
+        }
+
         fds[fd] = std::make_shared<TFileState>(filename, flags);
     }
 
@@ -302,86 +310,94 @@ namespace NOPTrace {
     }
 
     int TContext::SyscallExit(pid_t pid, const user_regs_struct& registers) noexcept {
-        const unsigned long& syscall = registers.orig_rax;
-        const unsigned long& retdata = registers.rax;
+        const unsigned long long& syscall = SYSCALL_NR(registers);
+        const unsigned long long& retdata = SYSCALL_RETDATA(registers);
+        const unsigned long long& arg0 = SYSCALL_ARG0(registers);
+        const unsigned long long& arg1 = SYSCALL_ARG1(registers);
+        const unsigned long long& arg2 = SYSCALL_ARG2(registers);
+        const unsigned long long& arg3 = SYSCALL_ARG3(registers);
 
         switch (syscall) {
             case SYS_write:
             case SYS_writev:
                 if ((ssize_t)retdata > 0) {
-                    OpWriteChangeOffset(pid, registers.rdi, retdata);
+                    OpWriteChangeOffset(pid, arg0, retdata);
                 }
                 break;
             case SYS_pwritev:
             case SYS_pwrite64:
             case SYS_pwritev2:
                 if ((ssize_t)retdata > 0) {
-                    OpWriteNoOffsetChange(pid, registers.rdi, retdata, registers.r10);
+                    OpWriteNoOffsetChange(pid, arg0, retdata, arg3);
                 }
                 break;
+#if defined(__x86_64__)
             case SYS_creat:
                 if ((int)retdata >= 0) {
-                    OpOpenWriteFile(pid, retdata, registers.rsi);
+                    OpOpenWriteFile(pid, retdata, arg1);
                 }
                 break;
             case SYS_open:
                 if ((int)retdata >= 0) {
-                    OpOpenFile(pid, retdata, registers.rsi);
+                    OpOpenFile(pid, retdata, arg1);
                 }
                 break;
+#endif
             case SYS_openat:
                 if ((int)retdata >= 0) {
-                    OpOpenFile(pid, retdata, registers.rdx);
+                    OpOpenFile(pid, retdata, arg2);
                 }
                 break;
             case SYS_close:
-                OpClose(pid, registers.rdi);
+                OpClose(pid, arg0);
                 break;
             case SYS_fcntl:
                 if ((int)retdata >= 0) {
-                    switch (registers.rsi) {
+                    switch (arg1) {
                         case F_DUPFD:
-                            OpDup(pid, registers.rdi, retdata);
+                            OpDup(pid, arg0, retdata);
                             break;
                         case F_DUPFD_CLOEXEC:
-                            OpDup3(pid, registers.rdi, retdata, O_CLOEXEC);
+                            OpDup3(pid, arg0, retdata, O_CLOEXEC);
                             break;
                         case F_SETFL:
                         case F_SETFD:
-                            OpSetFlag(pid, registers.rdi, registers.rdx);
+                            OpSetFlag(pid, arg0, arg2);
                             break;
                     }
                 }
                 break;
             case SYS_dup:
                 if ((int)retdata >= 0) {
-                    OpDup(pid, registers.rdi, retdata);
+                    OpDup(pid, arg0, retdata);
                 }
                 break;
+#if defined(__x86_64__)
             case SYS_dup2:
                 if ((int)retdata >= 0) {
-                    OpDup2(pid, registers.rdi, registers.rsi);
+                    OpDup2(pid, arg0, arg1);
                 }
                 break;
+#endif
             case SYS_dup3:
                 if ((int)retdata >= 0) {
-                    OpDup3(pid, registers.rdi, registers.rsi, registers.rdx);
+                    OpDup3(pid, arg0, arg1, arg2);
                 }
                 break;
             case SYS_fallocate:
                 if ((int)retdata >= 0) {
-                    //                           v offset + len
-                    OpResize(pid, registers.rdi, registers.rdx + registers.r10);
+                    //                  v offset + len
+                    OpResize(pid, arg0, arg2 + arg3);
                 }
                 break;
             case SYS_ftruncate:
                 if ((int)retdata >= 0) {
-                    OpResize(pid, registers.rdi, registers.rsi);
+                    OpResize(pid, arg0, arg1);
                 }
                 break;
             case SYS_lseek:
                 if ((int)retdata >= 0) {
-                    OpSeek(pid, registers.rdi, retdata);
+                    OpSeek(pid, arg0, retdata);
                 }
                 break;
         }
@@ -475,5 +491,11 @@ namespace NOPTrace {
             PrintReport();
         }
         return rc;
+    }
+
+    void TContext::ProcessInterruptionTarget(pid_t pid, const char* filename) const noexcept {
+        if (fnmatch(Options.InterruptionTarget.data(), filename, FNM_NOESCAPE) == 0) {
+            kill(pid, Options.InterruptionSignal);
+        }
     }
 }

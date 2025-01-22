@@ -15,16 +15,18 @@ NOPTrace::TOptions GetDefaults() {
         .Output="",
         .AppendOutput=false,
         .FollowForks=true,
-        .WaitDaemons=true,
+        .WaitDaemons=false,
         .JailForks=true,
         .HumanReadableSizes=false,
-        .FilesInReport=24,
+        .FilesInReport=-1,
         .CommandLengthLimit=120,
         .UseSecComp=true,
         .SearchForCoreDumps=true,
         .ForwardingSignals={SIGINT},
         .ForwardAllSignals=false,
         .StoreEmptyFiles=false,
+        .InterruptionTarget="",
+        .InterruptionSignal=0,
     };
 }
 
@@ -41,6 +43,10 @@ void printHelp() {
               << "  -o|--output FILE         send report to FILE instead of stderr\n"
               << "  -a|--append              don't overwrite output FILE\n"
               << "  -h|--human-readable      print sizes in human readable format\n"
+              << "  -i|--interruption-target VAL\n"
+              << "                           send an interrupt signal to a process when it attempts to open a target file (fnmatch) in write mode\n"
+              << "  -I|--interruption-sig VAL\n"
+              << "                           signal that will be sent when the interrupt target is found (default: SIGABRT)\n"
               << "\nBehavior:\n"
               << "  -D|--no-coredumps        don't take into account core dump files\n"
               << "  -e|--empty-files         trace empty files\n"
@@ -48,22 +54,22 @@ void printHelp() {
               << "                           (default: [SIGINT])\n"
               << "  -S|--forward-all-signals append signum to the list of forwarding signals to the PROG\n"
               << "\nTracing:\n"
+              << "  -w|--wait-daemons        wait for daemon processes when following forks\n"
               << "  -F|--no-follow-forks     don't follow forks\n"
               << "  -J|--no-jail-forks       don't kill all created processes, when optrace exits\n"
-              << "  -W|--no-wait-daemons     don't wait for daemon processes when following forks\n"
               << "  -C|--no-seccomp          don't use seccomp anyway\n";
 }
 
 int main(int argc, char* argv[]) {
     auto optraceOpts = GetDefaults();
 
-    const char* const short_cli_options = "+FJWho:ac:r:j:CDes:Sh";
+    const char* const short_cli_options = "+FJwho:ac:r:j:CDes:Si:I:h";
     const struct option cli_options[] = {
         {"no-follow-forks",     no_argument,        0, 'F'},
         {"no-jail-forks",       no_argument,        0, 'J'},
-        {"no-wait-daemons",     no_argument,        0, 'W'},
+        {"wait-daemons",        no_argument,        0, 'w'},
         {"human-readable",      no_argument,        0, 'h'},
-        {"output",              no_argument,        0, 'o'},
+        {"output",              required_argument,  0, 'o'},
         {"append",              no_argument,        0, 'a'},
         {"cmdline-size",        required_argument,  0, 'c'},
         {"report-size",         required_argument,  0, 'r'},
@@ -73,6 +79,8 @@ int main(int argc, char* argv[]) {
         {"empty-files",         no_argument,        0, 'e'},
         {"forward-sig",         required_argument,  0, 's'},
         {"forward-all-signals", no_argument,        0, 'S'},
+        {"interruption-target", required_argument,  0, 'i'},
+        {"interruption-sig",    required_argument,  0, 'I'},
         {"help",                no_argument,        0, 0},
         {0, 0, 0, 0}
     };
@@ -92,7 +100,7 @@ int main(int argc, char* argv[]) {
                 optraceOpts.JailForks = false;
                 break;
             case 'W':
-                optraceOpts.WaitDaemons = false;
+                optraceOpts.WaitDaemons = true;
                 break;
             case 'h':
                 optraceOpts.HumanReadableSizes = true;
@@ -135,6 +143,19 @@ int main(int argc, char* argv[]) {
                 break;
             case 'e':
                 optraceOpts.StoreEmptyFiles = true;
+                break;
+            case 'i':
+                optraceOpts.InterruptionTarget = optarg;
+                if (optraceOpts.InterruptionSignal == 0) {
+                    optraceOpts.InterruptionSignal = SIGABRT;
+                }
+                break;
+            case 'I':
+                signum = atoi(optarg);
+                if (signum > 31) {
+                    std::cerr << "Invalid signal number: " << signum << std::endl;
+                }
+                optraceOpts.InterruptionSignal = signum;
                 break;
             // Unknown option/Missing argument (getopt machinery prints error message)
             case '?':

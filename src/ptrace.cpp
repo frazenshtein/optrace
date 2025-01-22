@@ -5,6 +5,8 @@
 #include <cstring>
 #include <iostream>
 
+#include <sys/uio.h>
+
 namespace NOPTrace {
     long PtraceSafeCall(decltype(PTRACE_SYSCALL) request, pid_t pid, void* addr, void* data) noexcept {
         long res = ptrace(request, pid, addr, data);
@@ -39,7 +41,21 @@ namespace NOPTrace {
     }
 
     long PtraceGetRegs(pid_t pid, struct user_regs_struct& registers) noexcept {
-        return PtraceSafeCall(PTRACE_GETREGS, pid, 0, reinterpret_cast<void*>(&registers));
+#if defined(__x86_64__)
+        return PtraceSafeCall(PTRACE_GETREGS, pid, reinterpret_cast<void*>(0), reinterpret_cast<void*>(&registers));
+#else
+        struct iovec iov;
+        iov.iov_base = &registers;
+        iov.iov_len = sizeof(registers);
+        return PtraceSafeCall(PTRACE_GETREGSET, pid, reinterpret_cast<void*>(1), reinterpret_cast<void*>(&iov));
+#endif
+    }
+
+    long PtraceSetRegs(pid_t pid, struct user_regs_struct registers) noexcept {
+        struct iovec iov;
+        iov.iov_base = &registers;
+        iov.iov_len = sizeof(registers);
+        return PtraceSafeCall(PTRACE_SETREGSET, pid, reinterpret_cast<void*>(1), reinterpret_cast<void*>(&iov));
     }
 
     void PtraceTraceMe() noexcept {

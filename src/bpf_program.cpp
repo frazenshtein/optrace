@@ -13,17 +13,17 @@
 
 // Support ubuntu-10
 #ifndef PR_SET_NO_NEW_PRIVS
-#define PR_SET_NO_NEW_PRIVS 0x26
+    #define PR_SET_NO_NEW_PRIVS 0x26
 #endif
 
 // Partly from linux/seccomp.h
 #ifndef SECCOMP_MODE_FILTER
-#define SECCOMP_MODE_FILTER 0x2
+    #define SECCOMP_MODE_FILTER 0x2
 #endif
 
 #ifndef SECCOMP_RET_ALLOW
-#define SECCOMP_RET_ALLOW 0x7fff0000
-#define SECCOMP_RET_TRACE 0x7ff00000
+    #define SECCOMP_RET_ALLOW 0x7fff0000
+    #define SECCOMP_RET_TRACE 0x7ff00000
 
 struct seccomp_data {
     int nr;
@@ -38,6 +38,8 @@ namespace NOPTrace {
         std::vector<struct sock_filter> filter = {
             BPF_STMT(BPF_LD | BPF_W | BPF_ABS, (offsetof(struct seccomp_data, nr))),
 
+// Syscall open exists only at x86_64
+#if defined(__x86_64__)
             // int open(const char *pathname, int flags);
             BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, SYS_open, 0, 4),
             BPF_STMT(BPF_LD | BPF_W | BPF_ABS, (offsetof(struct seccomp_data, args[1]))),
@@ -45,6 +47,7 @@ namespace NOPTrace {
             BPF_JUMP(BPF_JMP | BPF_JSET | BPF_K, O_WRONLY, 1, 0),
             BPF_JUMP(BPF_JMP | BPF_JSET | BPF_K, O_RDWR, 0, 1),
             BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRACE),
+#endif
 
             // int openat(int dirfd, const char *pathname, int flags);
             BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, SYS_openat, 0, 4),
@@ -66,15 +69,17 @@ namespace NOPTrace {
         };
 
         const std::vector<unsigned> tracingSyscalls = {
+#if defined(__x86_64__) // these exist only at x86 arch
+            SYS_creat,
+            SYS_dup2,
+#endif
             SYS_write,
             SYS_writev,
             SYS_pwritev,
             SYS_pwrite64,
             SYS_pwritev2,
             SYS_close,
-            SYS_creat,
             SYS_dup,
-            SYS_dup2,
             SYS_dup3,
             SYS_fallocate,
             SYS_ftruncate,

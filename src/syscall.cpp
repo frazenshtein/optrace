@@ -5,26 +5,106 @@
         return #x;
 
 namespace NOPTrace {
+    long GetCloneFlags(pid_t pid) {
+#ifdef __x86_64__
+        // RDI stores clone flags
+        return PtracePeekUser(pid, sizeof(long long) * RDI);
+#elif defined(__aarch64__)
+        struct user_regs_struct tmp;
+        PtraceGetRegs(pid, tmp);
+        return tmp.regs[2];
+#endif
+    }
+
+    long GetSyscallNumber(const struct user_regs_struct& registers) {
+#if defined(__x86_64__)
+        // rax stores return data from syscall.
+        // However, before syscall-exit-stop it's unknown and kernel set -ENOSYS.
+        // So this is kind of a sanity check,
+        // that we don't misinterpret syscall-entry-stop as syscall-exit-stop
+        if ((int)registers.rax != -ENOSYS) {
+            return -2;
+        }
+#endif
+        return SYSCALL_NR(registers);
+    }
+
     const char* StrSyscallName(int syscall) {
         switch (syscall) {
+// x86-64 specific syscalls.
+// refer here: https://marcin.juszkiewicz.com.pl/download/tables/syscalls.html
+#if defined(__x86_64__)
             SYSCODE_CASE(SYS__sysctl);
-            SYSCODE_CASE(SYS_accept);
-            SYSCODE_CASE(SYS_accept4);
             SYSCODE_CASE(SYS_access);
-            SYSCODE_CASE(SYS_acct);
-            SYSCODE_CASE(SYS_add_key);
-            SYSCODE_CASE(SYS_adjtimex);
             SYSCODE_CASE(SYS_afs_syscall);
             SYSCODE_CASE(SYS_alarm);
             SYSCODE_CASE(SYS_arch_prctl);
+            SYSCODE_CASE(SYS_chmod);
+            SYSCODE_CASE(SYS_chown);
+            SYSCODE_CASE(SYS_copy_file_range);
+            SYSCODE_CASE(SYS_creat);
+            SYSCODE_CASE(SYS_create_module);
+            SYSCODE_CASE(SYS_dup2);
+            SYSCODE_CASE(SYS_epoll_create);
+            SYSCODE_CASE(SYS_epoll_ctl_old);
+            SYSCODE_CASE(SYS_epoll_wait);
+            SYSCODE_CASE(SYS_epoll_wait_old);
+            SYSCODE_CASE(SYS_eventfd);
+            SYSCODE_CASE(SYS_fork);
+            SYSCODE_CASE(SYS_futimesat);
+            SYSCODE_CASE(SYS_get_kernel_syms);
+            SYSCODE_CASE(SYS_get_thread_area);
+            SYSCODE_CASE(SYS_getdents);
+            SYSCODE_CASE(SYS_getpgrp);
+            SYSCODE_CASE(SYS_getpmsg);
+            SYSCODE_CASE(SYS_inotify_init);
+            SYSCODE_CASE(SYS_ioperm);
+            SYSCODE_CASE(SYS_iopl);
+            SYSCODE_CASE(SYS_kexec_file_load);
+            SYSCODE_CASE(SYS_lchown);
+            SYSCODE_CASE(SYS_link);
+            SYSCODE_CASE(SYS_lstat);
+            SYSCODE_CASE(SYS_mkdir);
+            SYSCODE_CASE(SYS_mknod);
+            SYSCODE_CASE(SYS_modify_ldt);
+            SYSCODE_CASE(SYS_open);
+            SYSCODE_CASE(SYS_pause);
+            SYSCODE_CASE(SYS_pipe);
+            SYSCODE_CASE(SYS_poll);
+            SYSCODE_CASE(SYS_putpmsg);
+            SYSCODE_CASE(SYS_query_module);
+            SYSCODE_CASE(SYS_readlink);
+            SYSCODE_CASE(SYS_rename);
+            SYSCODE_CASE(SYS_rmdir);
+            SYSCODE_CASE(SYS_security);
+            SYSCODE_CASE(SYS_select);
+            SYSCODE_CASE(SYS_set_thread_area);
+            SYSCODE_CASE(SYS_signalfd);
+            SYSCODE_CASE(SYS_stat);
+            SYSCODE_CASE(SYS_symlink);
+            SYSCODE_CASE(SYS_sysfs);
+            SYSCODE_CASE(SYS_time);
+            SYSCODE_CASE(SYS_tuxcall);
+            SYSCODE_CASE(SYS_unlink);
+            SYSCODE_CASE(SYS_uselib);
+            SYSCODE_CASE(SYS_ustat);
+            SYSCODE_CASE(SYS_utime);
+            SYSCODE_CASE(SYS_utimes);
+            SYSCODE_CASE(SYS_vfork);
+            SYSCODE_CASE(SYS_vserver);
+#endif
+
+            SYSCODE_CASE(SYS_accept);
+            SYSCODE_CASE(SYS_accept4);
+            SYSCODE_CASE(SYS_acct);
+            SYSCODE_CASE(SYS_add_key);
+            SYSCODE_CASE(SYS_adjtimex);
             SYSCODE_CASE(SYS_bind);
             SYSCODE_CASE(SYS_bpf);
             SYSCODE_CASE(SYS_brk);
             SYSCODE_CASE(SYS_capget);
             SYSCODE_CASE(SYS_capset);
             SYSCODE_CASE(SYS_chdir);
-            SYSCODE_CASE(SYS_chmod);
-            SYSCODE_CASE(SYS_chown);
             SYSCODE_CASE(SYS_chroot);
             SYSCODE_CASE(SYS_clock_adjtime);
             SYSCODE_CASE(SYS_clock_getres);
@@ -34,21 +114,12 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_clone);
             SYSCODE_CASE(SYS_close);
             SYSCODE_CASE(SYS_connect);
-            SYSCODE_CASE(SYS_copy_file_range);
-            SYSCODE_CASE(SYS_creat);
-            SYSCODE_CASE(SYS_create_module);
             SYSCODE_CASE(SYS_delete_module);
             SYSCODE_CASE(SYS_dup);
-            SYSCODE_CASE(SYS_dup2);
             SYSCODE_CASE(SYS_dup3);
-            SYSCODE_CASE(SYS_epoll_create);
             SYSCODE_CASE(SYS_epoll_create1);
             SYSCODE_CASE(SYS_epoll_ctl);
-            SYSCODE_CASE(SYS_epoll_ctl_old);
             SYSCODE_CASE(SYS_epoll_pwait);
-            SYSCODE_CASE(SYS_epoll_wait);
-            SYSCODE_CASE(SYS_epoll_wait_old);
-            SYSCODE_CASE(SYS_eventfd);
             SYSCODE_CASE(SYS_eventfd2);
             SYSCODE_CASE(SYS_execve);
             SYSCODE_CASE(SYS_execveat);
@@ -70,7 +141,6 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_finit_module);
             SYSCODE_CASE(SYS_flistxattr);
             SYSCODE_CASE(SYS_flock);
-            SYSCODE_CASE(SYS_fork);
             SYSCODE_CASE(SYS_fremovexattr);
             SYSCODE_CASE(SYS_fsetxattr);
             SYSCODE_CASE(SYS_fstat);
@@ -78,14 +148,10 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_fsync);
             SYSCODE_CASE(SYS_ftruncate);
             SYSCODE_CASE(SYS_futex);
-            SYSCODE_CASE(SYS_futimesat);
-            SYSCODE_CASE(SYS_get_kernel_syms);
             SYSCODE_CASE(SYS_get_mempolicy);
             SYSCODE_CASE(SYS_get_robust_list);
-            SYSCODE_CASE(SYS_get_thread_area);
             SYSCODE_CASE(SYS_getcpu);
             SYSCODE_CASE(SYS_getcwd);
-            SYSCODE_CASE(SYS_getdents);
             SYSCODE_CASE(SYS_getdents64);
             SYSCODE_CASE(SYS_getegid);
             SYSCODE_CASE(SYS_geteuid);
@@ -94,9 +160,7 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_getitimer);
             SYSCODE_CASE(SYS_getpeername);
             SYSCODE_CASE(SYS_getpgid);
-            SYSCODE_CASE(SYS_getpgrp);
             SYSCODE_CASE(SYS_getpid);
-            SYSCODE_CASE(SYS_getpmsg);
             SYSCODE_CASE(SYS_getppid);
             SYSCODE_CASE(SYS_getpriority);
             SYSCODE_CASE(SYS_getrandom);
@@ -113,7 +177,6 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_getxattr);
             SYSCODE_CASE(SYS_init_module);
             SYSCODE_CASE(SYS_inotify_add_watch);
-            SYSCODE_CASE(SYS_inotify_init);
             SYSCODE_CASE(SYS_inotify_init1);
             SYSCODE_CASE(SYS_inotify_rm_watch);
             SYSCODE_CASE(SYS_io_cancel);
@@ -122,18 +185,13 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_io_setup);
             SYSCODE_CASE(SYS_io_submit);
             SYSCODE_CASE(SYS_ioctl);
-            SYSCODE_CASE(SYS_ioperm);
-            SYSCODE_CASE(SYS_iopl);
             SYSCODE_CASE(SYS_ioprio_get);
             SYSCODE_CASE(SYS_ioprio_set);
             SYSCODE_CASE(SYS_kcmp);
-            SYSCODE_CASE(SYS_kexec_file_load);
             SYSCODE_CASE(SYS_kexec_load);
             SYSCODE_CASE(SYS_keyctl);
             SYSCODE_CASE(SYS_kill);
-            SYSCODE_CASE(SYS_lchown);
             SYSCODE_CASE(SYS_lgetxattr);
-            SYSCODE_CASE(SYS_link);
             SYSCODE_CASE(SYS_linkat);
             SYSCODE_CASE(SYS_listen);
             SYSCODE_CASE(SYS_listxattr);
@@ -142,22 +200,18 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_lremovexattr);
             SYSCODE_CASE(SYS_lseek);
             SYSCODE_CASE(SYS_lsetxattr);
-            SYSCODE_CASE(SYS_lstat);
             SYSCODE_CASE(SYS_madvise);
             SYSCODE_CASE(SYS_mbind);
             SYSCODE_CASE(SYS_membarrier);
             SYSCODE_CASE(SYS_memfd_create);
             SYSCODE_CASE(SYS_migrate_pages);
             SYSCODE_CASE(SYS_mincore);
-            SYSCODE_CASE(SYS_mkdir);
             SYSCODE_CASE(SYS_mkdirat);
-            SYSCODE_CASE(SYS_mknod);
             SYSCODE_CASE(SYS_mknodat);
             SYSCODE_CASE(SYS_mlock);
             SYSCODE_CASE(SYS_mlock2);
             SYSCODE_CASE(SYS_mlockall);
             SYSCODE_CASE(SYS_mmap);
-            SYSCODE_CASE(SYS_modify_ldt);
             SYSCODE_CASE(SYS_mount);
             SYSCODE_CASE(SYS_move_pages);
             SYSCODE_CASE(SYS_mprotect);
@@ -180,19 +234,15 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_nanosleep);
             SYSCODE_CASE(SYS_newfstatat);
             SYSCODE_CASE(SYS_nfsservctl);
-            SYSCODE_CASE(SYS_open);
             SYSCODE_CASE(SYS_open_by_handle_at);
             SYSCODE_CASE(SYS_openat);
-            SYSCODE_CASE(SYS_pause);
             SYSCODE_CASE(SYS_perf_event_open);
             SYSCODE_CASE(SYS_personality);
-            SYSCODE_CASE(SYS_pipe);
             SYSCODE_CASE(SYS_pipe2);
             SYSCODE_CASE(SYS_pivot_root);
             SYSCODE_CASE(SYS_pkey_alloc);
             SYSCODE_CASE(SYS_pkey_free);
             SYSCODE_CASE(SYS_pkey_mprotect);
-            SYSCODE_CASE(SYS_poll);
             SYSCODE_CASE(SYS_ppoll);
             SYSCODE_CASE(SYS_prctl);
             SYSCODE_CASE(SYS_pread64);
@@ -203,15 +253,12 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_process_vm_writev);
             SYSCODE_CASE(SYS_pselect6);
             SYSCODE_CASE(SYS_ptrace);
-            SYSCODE_CASE(SYS_putpmsg);
             SYSCODE_CASE(SYS_pwrite64);
             SYSCODE_CASE(SYS_pwritev);
             SYSCODE_CASE(SYS_pwritev2);
-            SYSCODE_CASE(SYS_query_module);
             SYSCODE_CASE(SYS_quotactl);
             SYSCODE_CASE(SYS_read);
             SYSCODE_CASE(SYS_readahead);
-            SYSCODE_CASE(SYS_readlink);
             SYSCODE_CASE(SYS_readlinkat);
             SYSCODE_CASE(SYS_readv);
             SYSCODE_CASE(SYS_reboot);
@@ -220,12 +267,10 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_recvmsg);
             SYSCODE_CASE(SYS_remap_file_pages);
             SYSCODE_CASE(SYS_removexattr);
-            SYSCODE_CASE(SYS_rename);
             SYSCODE_CASE(SYS_renameat);
             SYSCODE_CASE(SYS_renameat2);
             SYSCODE_CASE(SYS_request_key);
             SYSCODE_CASE(SYS_restart_syscall);
-            SYSCODE_CASE(SYS_rmdir);
             SYSCODE_CASE(SYS_rt_sigaction);
             SYSCODE_CASE(SYS_rt_sigpending);
             SYSCODE_CASE(SYS_rt_sigprocmask);
@@ -247,8 +292,6 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_sched_setscheduler);
             SYSCODE_CASE(SYS_sched_yield);
             SYSCODE_CASE(SYS_seccomp);
-            SYSCODE_CASE(SYS_security);
-            SYSCODE_CASE(SYS_select);
             SYSCODE_CASE(SYS_semctl);
             SYSCODE_CASE(SYS_semget);
             SYSCODE_CASE(SYS_semop);
@@ -259,7 +302,6 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_sendto);
             SYSCODE_CASE(SYS_set_mempolicy);
             SYSCODE_CASE(SYS_set_robust_list);
-            SYSCODE_CASE(SYS_set_thread_area);
             SYSCODE_CASE(SYS_set_tid_address);
             SYSCODE_CASE(SYS_setdomainname);
             SYSCODE_CASE(SYS_setfsgid);
@@ -287,27 +329,22 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_shmget);
             SYSCODE_CASE(SYS_shutdown);
             SYSCODE_CASE(SYS_sigaltstack);
-            SYSCODE_CASE(SYS_signalfd);
             SYSCODE_CASE(SYS_signalfd4);
             SYSCODE_CASE(SYS_socket);
             SYSCODE_CASE(SYS_socketpair);
             SYSCODE_CASE(SYS_splice);
-            SYSCODE_CASE(SYS_stat);
             SYSCODE_CASE(SYS_statfs);
             SYSCODE_CASE(SYS_statx);
             SYSCODE_CASE(SYS_swapoff);
             SYSCODE_CASE(SYS_swapon);
-            SYSCODE_CASE(SYS_symlink);
             SYSCODE_CASE(SYS_symlinkat);
             SYSCODE_CASE(SYS_sync);
             SYSCODE_CASE(SYS_sync_file_range);
             SYSCODE_CASE(SYS_syncfs);
-            SYSCODE_CASE(SYS_sysfs);
             SYSCODE_CASE(SYS_sysinfo);
             SYSCODE_CASE(SYS_syslog);
             SYSCODE_CASE(SYS_tee);
             SYSCODE_CASE(SYS_tgkill);
-            SYSCODE_CASE(SYS_time);
             SYSCODE_CASE(SYS_timer_create);
             SYSCODE_CASE(SYS_timer_delete);
             SYSCODE_CASE(SYS_timer_getoverrun);
@@ -319,23 +356,15 @@ namespace NOPTrace {
             SYSCODE_CASE(SYS_times);
             SYSCODE_CASE(SYS_tkill);
             SYSCODE_CASE(SYS_truncate);
-            SYSCODE_CASE(SYS_tuxcall);
             SYSCODE_CASE(SYS_umask);
             SYSCODE_CASE(SYS_umount2);
             SYSCODE_CASE(SYS_uname);
-            SYSCODE_CASE(SYS_unlink);
             SYSCODE_CASE(SYS_unlinkat);
             SYSCODE_CASE(SYS_unshare);
-            SYSCODE_CASE(SYS_uselib);
             SYSCODE_CASE(SYS_userfaultfd);
-            SYSCODE_CASE(SYS_ustat);
-            SYSCODE_CASE(SYS_utime);
             SYSCODE_CASE(SYS_utimensat);
-            SYSCODE_CASE(SYS_utimes);
-            SYSCODE_CASE(SYS_vfork);
             SYSCODE_CASE(SYS_vhangup);
             SYSCODE_CASE(SYS_vmsplice);
-            SYSCODE_CASE(SYS_vserver);
             SYSCODE_CASE(SYS_wait4);
             SYSCODE_CASE(SYS_waitid);
             SYSCODE_CASE(SYS_write);

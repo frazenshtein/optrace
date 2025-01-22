@@ -39,6 +39,7 @@ namespace NOPTrace {
         TProcStatePtr NewProcState(size_t pid, size_t ppid) const noexcept;
         TProcState* GetProcState(pid_t pid) noexcept;
         void SearchAndRegisterCoreDumpFile(TProcInfoPtr pinfo, int termSig) noexcept;
+        void ProcessInterruptionTarget(pid_t pid, const char* filename) const noexcept;
 
         void OpOpenFile(pid_t pid, size_t fd, size_t flags) noexcept;
         void OpOpenWriteFile(pid_t pid, size_t fd, size_t flags) noexcept;
