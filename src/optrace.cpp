@@ -1,10 +1,10 @@
 #include "optrace.h"
-
 #include "bpf_program.h"
 #include "context.h"
 #include "ptrace.h"
 #include "regs.h"
 #include "utils.h"
+#include "syscall.h"
 
 #include <cassert>
 #include <cerrno>
@@ -211,8 +211,7 @@ namespace NOPTrace {
                 if (event == PTRACE_EVENT_CLONE || event == PTRACE_EVENT_FORK || event == PTRACE_EVENT_VFORK) {
                     bool isThread = false;
                     if (event == PTRACE_EVENT_CLONE) {
-                        // RDI stores clone flags
-                        long cloneFlags = PtracePeekUser(pid, sizeof(long) * RDI);
+                        long cloneFlags = GetCloneFlags(pid);
                         if (cloneFlags < 0) {
                             // Looks like process is dead or refusing ptrace requests
                             PtraceRestartSyscall(pid, 0);
@@ -270,18 +269,21 @@ namespace NOPTrace {
                 int& threadPrevSyscall = syscallStateMap[pid];
 
                 if (threadPrevSyscall == SYSCALL_UNDEFINED) {
-                    // orig_rax stores syscall number
-                    threadPrevSyscall = registers.orig_rax;
-
+                    threadPrevSyscall = GetSyscallNumber(registers);
                     // rax stores return data from syscall.
                     // However, before syscall-exit-stop it's unknown and kernel set -ENOSYS.
                     // So this is kind of a sanity check,
                     // that we don't misinterpret syscall-entry-stop as syscall-exit-stop
-                    if ((int)registers.rax != -ENOSYS) {
+                    if ((int)registers.rax != -2) {
                         return -2;
                     }
-
                     context.SyscallEnter(pid, registers);
+#if defined(__aarch64__)
+                    // We need to save first parameter of syscall as it is replaced by retdata after syscall processing.
+                    // We are storing data at r9, which is one of temporary data registers.
+                    registers.regs[9] = registers.regs[0];
+                    PtraceSetRegs(pid, registers);
+#endif
                 } else {
                     threadPrevSyscall = SYSCALL_UNDEFINED;
                     context.SyscallExit(pid, registers);

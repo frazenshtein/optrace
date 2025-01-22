@@ -1,7 +1,3 @@
-ifneq ($(shell uname -m), x86_64)
-  $(error Error: optrace currently supports only x86_64 build)
-endif
-
 SRCDIR:=$(strip $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))/src
 
 GCC_VER_GTE70 := $(shell echo `g++ -dumpversion | cut -f1-2 -d.` \>= 7.0 | bc)
