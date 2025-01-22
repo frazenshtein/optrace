@@ -274,7 +274,7 @@ namespace NOPTrace {
                     // However, before syscall-exit-stop it's unknown and kernel set -ENOSYS.
                     // So this is kind of a sanity check,
                     // that we don't misinterpret syscall-entry-stop as syscall-exit-stop
-                    if ((int)registers.rax != -2) {
+                    if ((int)threadPrevSyscall == -2) {
                         return -2;
                     }
                     context.SyscallEnter(pid, registers);
